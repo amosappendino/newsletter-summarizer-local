@@ -6,7 +6,8 @@ WORKDIR /app
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PORT=8080
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,11 +18,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy project files, including the credentials file
 COPY . .
 
-# Expose FastAPI port
-EXPOSE 8000
+COPY ./google_secrets.json /
+ENV GOOGLE_APPLICATION_CREDENTIALS=/google_secrets.json
 
-# Remove --reload flag for production
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use PORT environment variable
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+
