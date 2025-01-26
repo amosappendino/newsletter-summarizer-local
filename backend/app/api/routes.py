@@ -59,13 +59,34 @@ def summarize_content(email_body):
     """Use OpenAI to summarize a single email."""
     prompt = f"Summarize the following email:\n{email_body}"
     response = openai.ChatCompletion.create(
-        model="gpt-4-turbo",
+        model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are an assistant summarizing emails to extract key insights while maintaining a good level of detail."},
+            {"role": "system", "content": "Summarize the email, keeping key insights with sufficient detail."},
             {"role": "user", "content": prompt}
-        ]
+        ],
+        max_tokens=500
     )
-    return response['choices'][0]['message']['content']
+    
+    summary = response['choices'][0]['message']['content']
+
+    # Extract token usage info from API response
+    token_usage = response.get('usage', {})
+    input_tokens = token_usage.get('prompt_tokens', 0)
+    output_tokens = token_usage.get('completion_tokens', 0)
+    total_tokens = token_usage.get('total_tokens', 0)
+
+    # Cost estimation based on model pricing
+    cost_per_1k_input = 0.0005  # GPT-3.5-turbo input cost
+    cost_per_1k_output = 0.0015  # GPT-3.5-turbo output cost
+
+    input_cost = (input_tokens / 1000) * cost_per_1k_input
+    output_cost = (output_tokens / 1000) * cost_per_1k_output
+    total_cost = input_cost + output_cost
+
+    print(f"Tokens used - Input: {input_tokens}, Output: {output_tokens}, Total: {total_tokens}")
+    print(f"Estimated Cost: ${total_cost:.6f}")
+
+    return summary
 
 @router.get("/search-emails/")
 async def search_emails(query: str = Query(..., description="Search emails by sender or subject")):
