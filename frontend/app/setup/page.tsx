@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function SetupPage() {
@@ -10,20 +10,21 @@ export default function SetupPage() {
     const [isLoading, setIsLoading] = useState(false);
 
     // Check if setup is already completed
-    useEffect(() => {
-        const checkSetup = async () => {
-            try {
-                const response = await fetch('http://localhost:8000/check-setup');
-                const data = await response.json();
-                if (data.is_setup) {
-                    router.push('/');
-                }
-            } catch (error) {
-                console.error('Error checking setup:', error);
+    const checkSetup = useCallback(async () => {
+        try {
+            const response = await fetch('http://localhost:8000/check-setup');
+            const data = await response.json();
+            if (data.is_setup) {
+                router.push('/');
             }
-        };
+        } catch (error) {
+            console.error('Error checking setup:', error);
+        }
+    }, [router]);
+
+    useEffect(() => {
         checkSetup();
-    }, []);
+    }, [checkSetup]);
 
     const handleSubmit = async () => {
         try {
@@ -94,7 +95,7 @@ export default function SetupPage() {
                         <h3 className="font-semibold mb-2">Quick Instructions:</h3>
                         <ol className="list-decimal list-inside space-y-2 text-sm">
                             <li>Open Gmail</li>
-                            <li>On the left sidebar, scroll down and click "Create new label"</li>
+                            <li>On the left sidebar, scroll down and click &ldquo;Create new label&rdquo;</li>
                             <li>Enter a name for your newsletter folder</li>
                             <li>Click Create</li>
                             <li>Move your newsletter emails to this folder</li>

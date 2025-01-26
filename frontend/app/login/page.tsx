@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -7,11 +7,7 @@ export default function LoginPage() {
     const [authStatus, setAuthStatus] = useState<string>('checking');
     const [error, setError] = useState<string>('');
 
-    useEffect(() => {
-        checkAuthStatus();
-    }, []);
-
-    const checkAuthStatus = async () => {
+    const checkAuthStatus = useCallback(async () => {
         try {
             const response = await fetch('http://localhost:8000/check-auth');
             const data = await response.json();
@@ -26,7 +22,11 @@ export default function LoginPage() {
             setError('Failed to check authentication status');
             setAuthStatus('error');
         }
-    };
+    }, [router]);
+
+    useEffect(() => {
+        checkAuthStatus();
+    }, [checkAuthStatus]);
 
     const handleLogin = async () => {
         try {
