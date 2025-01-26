@@ -8,6 +8,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from bs4 import BeautifulSoup
+import openai
 
 # Load environment variables from .env file
 load_dotenv()
@@ -24,6 +25,8 @@ DB_CONFIG = {
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'credentials.json')
 TOKEN_FILE = os.path.join(os.path.dirname(__file__), 'token.json')
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def authenticate_gmail():
     """Handles Gmail API authentication and returns a service instance."""
@@ -141,6 +144,49 @@ def store_emails_in_db(email_data):
 
     except Exception as e:
         print(f"Database error: {e}")
+
+# New functions to search and summarize emails
+def search_emails(query):
+    """Search emails matching the query by sender, subject, or content."""
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    
+    query_param = f"%{query}%"
+    cur.execute("""
+        SELECT id, sender, subject, received_at 
+        FROM emails 
+        WHERE sender ILIKE %s OR subject ILIKE %s OR body ILIKE %s
+    """, (query_param, query_param, query_param))
+    
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    emails = [{"id": row[0], "sender": row[1], "subject": row[2], "received_at": row[3]} for row in results]
+    return emails
+
+def summarize_email(email_id):
+    """Fetch email content and summarize it using OpenAI."""
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    cur.execute("SELECT body FROM emails WHERE id = %s", (email_id,))
+    email_body = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not email_body:
+        return "No email found with the given ID."
+    
+    # Send to OpenAI for summarization
+    response = openai.ChatCompletion.create(
+        model="gpt-4-turbo",
+        messages=[
+            {"role": "system", "content": "Summarize the following email content:"},
+            {"role": "user", "content": email_body[0]}
+        ]
+    )
+    
+    return response['choices'][0]['message']['content']
 
 if __name__ == "__main__":
     fetch_emails()
