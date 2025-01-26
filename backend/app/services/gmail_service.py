@@ -9,6 +9,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from bs4 import BeautifulSoup
 import openai
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -32,33 +33,64 @@ def authenticate_gmail():
     """Handles Gmail API authentication and returns a service instance."""
     creds = None
     if os.path.exists(TOKEN_FILE):
-        with open(TOKEN_FILE, 'rb') as token:
-            creds = pickle.load(token)
+        try:
+            with open(TOKEN_FILE, 'rb') as token:
+                creds = pickle.load(token)
+        except Exception:
+            if os.path.exists(TOKEN_FILE):
+                os.remove(TOKEN_FILE)
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+            except Exception:
+                if os.path.exists(TOKEN_FILE):
+                    os.remove(TOKEN_FILE)
+                creds = None
+        
+        if not creds:
             flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-            creds = flow.run_local_server(port=8000)
+            creds = flow.run_local_server(port=8080)
 
-        with open(TOKEN_FILE, 'wb') as token:
-            pickle.dump(creds, token)
+            with open(TOKEN_FILE, 'wb') as token:
+                pickle.dump(creds, token)
 
     return build('gmail', 'v1', credentials=creds)
 
 def list_labels(service):
-    """Fetch all labels and find 'Da guardare' label ID."""
-    results = service.users().labels().list(userId='me').execute()
-    labels = results.get('labels', [])
+    """Fetch all labels and find the configured folder."""
+    try:
+        # Get the configured folder name
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'folder_config.json')
+        folder_name = "Da guardare"  # Default name
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                folder_name = config.get('folder_name', folder_name)
+        
+        print(f"Looking for folder: {folder_name}")  # Debug log
+        
+        # List all labels
+        results = service.users().labels().list(userId='me').execute()
+        labels = results.get('labels', [])
+        
+        print("Available labels:")  # Debug log
+        for label in labels:
+            print(f"- {label['name']} (ID: {label['id']})")  # Debug log
 
-    for label in labels:
-        if label['name'] == "Da guardare":
-            print(f"Found 'Da guardare' label with ID: {label['id']}")
-            return label['id']
-    
-    print("Label 'Da guardare' not found.")
-    return None
+        # Find the matching label
+        for label in labels:
+            if label['name'].lower() == folder_name.lower():
+                print(f"Found matching label: {label['name']} with ID: {label['id']}")
+                return label['id']
+        
+        print(f"Label '{folder_name}' not found!")
+        return None
+
+    except Exception as e:
+        print(f"Error listing labels: {str(e)}")
+        return None
 
 def extract_plain_text(payload):
     """Extract plain text content from an email's payload."""
@@ -187,6 +219,119 @@ def summarize_email(email_id):
     )
     
     return response['choices'][0]['message']['content']
+
+def logout():
+    """Remove Gmail API credentials."""
+    try:
+        if os.path.exists(TOKEN_FILE):
+            os.remove(TOKEN_FILE)
+            return {"message": "Successfully logged out"}
+        else:
+            return {"message": "No active session found"}
+    except Exception as e:
+        print(f"Error during logout: {e}")
+        return {"error": f"Failed to logout: {str(e)}"}
+
+def is_authenticated():
+    """Check if there's a valid authentication token."""
+    if os.path.exists(TOKEN_FILE):
+        try:
+            with open(TOKEN_FILE, 'rb') as token:
+                creds = pickle.load(token)
+                return creds and creds.valid
+        except Exception:
+            return False
+    return False
+
+def search_messages(service, query: str, label_id: str = None):
+    """Search for messages in Gmail."""
+    try:
+        print(f"Searching in label_id: {label_id}")
+        
+        # Get all messages in the label
+        results = service.users().messages().list(
+            userId='me',
+            labelIds=[label_id],
+            maxResults=100
+        ).execute()
+
+        messages = results.get('messages', [])
+        
+        if not messages:
+            print("No messages found in the label")
+            return []
+
+        detailed_messages = []
+        # Keep the original query for exact matches
+        query_exact = query.lower().strip()
+        # Also split into terms for broader matching if needed
+        query_terms = query_exact.split()
+        print(f"Search query: {query_exact}")
+        
+        for message in messages:
+            # Get full message content including body
+            msg = service.users().messages().get(
+                userId='me',
+                id=message['id'],
+                format='full'
+            ).execute()
+
+            # Extract headers
+            headers = msg.get('payload', {}).get('headers', [])
+            sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown')
+            subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No subject')
+
+            # Extract body content
+            body = ""
+            if 'parts' in msg.get('payload', {}):
+                for part in msg['payload']['parts']:
+                    if part.get('mimeType') == 'text/plain':
+                        body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
+                        break
+            elif 'body' in msg.get('payload', {}):
+                if 'data' in msg['payload']['body']:
+                    body = base64.urlsafe_b64decode(msg['payload']['body']['data']).decode('utf-8')
+
+            # If no search terms, include all messages
+            if not query_exact:
+                detailed_messages.append({
+                    'id': msg['id'],
+                    'sender': sender,
+                    'subject': subject
+                })
+                continue
+
+            # Convert to lowercase for case-insensitive matching
+            sender_lower = sender.lower()
+            subject_lower = subject.lower()
+            body_lower = body.lower()
+
+            # First, check for exact matches in sender or subject
+            if (query_exact in sender_lower or query_exact in subject_lower):
+                detailed_messages.append({
+                    'id': msg['id'],
+                    'sender': sender,
+                    'subject': subject
+                })
+                print(f"Exact match found - Subject: {subject}, Sender: {sender}")
+                continue
+
+            # If no exact match, then check if ALL terms appear in the body
+            # This ensures we only match when all search terms are present
+            if all(term in body_lower for term in query_terms):
+                detailed_messages.append({
+                    'id': msg['id'],
+                    'sender': sender,
+                    'subject': subject
+                })
+                print(f"Body match found - Subject: {subject}, Sender: {sender}")
+
+        print(f"Found {len(detailed_messages)} matching messages")
+        return detailed_messages
+
+    except Exception as e:
+        print(f"Error in search_messages: {str(e)}")
+        raise e
 
 if __name__ == "__main__":
     fetch_emails()

@@ -8,7 +8,7 @@ app = FastAPI(title="Newsletter Summarizer API")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins, replace with specific domains in production
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Add both localhost variations
     allow_credentials=True,
     allow_methods=["*"],  # Allows all HTTP methods
     allow_headers=["*"],  # Allows all headers
