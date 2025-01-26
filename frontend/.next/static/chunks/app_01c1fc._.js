@@ -20,7 +20,8 @@ const searchEmails = async (query)=>{
                 query
             }
         });
-        return response.data;
+        // Ensure we're returning an array
+        return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
         console.error("Error fetching emails:", error);
         throw error;
@@ -33,7 +34,8 @@ const summarizeEmail = async (emailId)=>{
                 email_id: emailId
             }
         });
-        return response.data;
+        // Return just the summary string from the response
+        return response.data.summary || '';
     } catch (error) {
         console.error("Error summarizing email:", error);
         throw error;
@@ -69,26 +71,67 @@ function HomePage() {
     const [isSummarizing, setIsSummarizing] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [searchError, setSearchError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [summaryError, setSummaryError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [isAuthenticated, setIsAuthenticated] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [isLoading, setIsLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
+    // Add authentication check
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "HomePage.useEffect": ()=>{
+            const checkAuth = {
+                "HomePage.useEffect.checkAuth": async ()=>{
+                    try {
+                        const response = await fetch('http://localhost:8000/check-auth');
+                        const data = await response.json();
+                        if (data.status === 'unauthenticated') {
+                            window.location.href = '/login';
+                        } else {
+                            setIsAuthenticated(true);
+                        }
+                    } catch (error) {
+                        console.error('Error checking auth status:', error);
+                        window.location.href = '/login';
+                    } finally{
+                        setIsLoading(false);
+                    }
+                }
+            }["HomePage.useEffect.checkAuth"];
+            checkAuth();
+        }
+    }["HomePage.useEffect"], []);
     const handleSearch = async ()=>{
+        if (!query.trim()) return;
+        setIsSearching(true);
+        setSearchError(null);
+        setEmails([]); // Clear previous results
         try {
-            setIsSearching(true);
-            setSearchError(null);
             const response = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["searchEmails"])(query);
-            setEmails(response.emails || []);
+            if (response && Array.isArray(response)) {
+                setEmails(response);
+                if (response.length === 0) {
+                    setSearchError("No emails found matching your search.");
+                }
+            } else {
+                console.error("Invalid response format:", response);
+                setSearchError("Error fetching emails. Please try again.");
+            }
         } catch (error) {
-            console.error("Error fetching emails:", error);
-            setSearchError("Failed to fetch emails. Please try again.");
+            console.error("Error searching emails:", error);
+            setSearchError("Failed to search emails. Please try again.");
         } finally{
             setIsSearching(false);
         }
     };
     const handleSummarize = async (emailId)=>{
+        if (isSummarizing) return;
+        setSelectedEmail(emailId);
+        setSummaryError(null);
+        setIsSummarizing(true);
         try {
-            setSelectedEmail(emailId);
-            setIsSummarizing(true);
-            setSummaryError(null);
-            const response = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["summarizeEmail"])(emailId);
-            setSummary(response.summary);
+            const summary = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["summarizeEmail"])(emailId);
+            if (summary) {
+                setSummary(summary);
+            } else {
+                setSummaryError("Failed to generate summary.");
+            }
         } catch (error) {
             console.error("Error summarizing email:", error);
             setSummaryError("Failed to generate summary. Please try again.");
@@ -96,135 +139,209 @@ function HomePage() {
             setIsSummarizing(false);
         }
     };
+    const handleLogout = async ()=>{
+        try {
+            const response = await fetch('http://localhost:8000/logout');
+            const data = await response.json();
+            if (response.ok) {
+                // Clear local state
+                setEmails([]);
+                setSummary("");
+                setQuery("");
+                setIsAuthenticated(false);
+                // Redirect to login page
+                window.location.href = '/login';
+            } else {
+                console.error('Logout failed:', data);
+            }
+        } catch (error) {
+            console.error('Error logging out:', error);
+        }
+    };
+    if (isLoading) {
+        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "min-h-screen flex items-center justify-center bg-gray-50",
+            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "text-center text-gray-600",
+                children: "Loading..."
+            }, void 0, false, {
+                fileName: "[project]/app/page.tsx",
+                lineNumber: 119,
+                columnNumber: 17
+            }, this)
+        }, void 0, false, {
+            fileName: "[project]/app/page.tsx",
+            lineNumber: 118,
+            columnNumber: 13
+        }, this);
+    }
+    if (!isAuthenticated) {
+        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "min-h-screen flex items-center justify-center bg-gray-50",
+            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "text-center text-gray-600",
+                children: "Redirecting to login..."
+            }, void 0, false, {
+                fileName: "[project]/app/page.tsx",
+                lineNumber: 129,
+                columnNumber: 17
+            }, this)
+        }, void 0, false, {
+            fileName: "[project]/app/page.tsx",
+            lineNumber: 128,
+            columnNumber: 13
+        }, this);
+    }
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-8",
         children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                onClick: handleLogout,
+                className: "absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600",
+                children: "Logout"
+            }, void 0, false, {
+                fileName: "[project]/app/page.tsx",
+                lineNumber: 138,
+                columnNumber: 13
+            }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
                 className: "text-3xl font-bold text-gray-900 dark:text-white mb-6",
                 children: "Newsletter Summarizer"
             }, void 0, false, {
                 fileName: "[project]/app/page.tsx",
-                lineNumber: 46,
+                lineNumber: 145,
                 columnNumber: 13
             }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                type: "text",
-                placeholder: "Search emails by sender or subject...",
-                value: query,
-                onChange: (e)=>setQuery(e.target.value),
-                maxLength: 100,
-                className: "border p-2 rounded w-full max-w-md mb-4"
-            }, void 0, false, {
-                fileName: "[project]/app/page.tsx",
-                lineNumber: 49,
-                columnNumber: 13
-            }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                onClick: handleSearch,
-                disabled: isSearching,
-                className: `bg-blue-500 text-white px-4 py-2 rounded-md ${isSearching ? 'opacity-50 cursor-not-allowed' : ''}`,
-                children: isSearching ? 'Searching...' : 'Search Emails'
-            }, void 0, false, {
-                fileName: "[project]/app/page.tsx",
-                lineNumber: 57,
-                columnNumber: 13
-            }, this),
-            searchError && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "mt-4 text-red-600 bg-red-100 p-3 rounded-md",
-                children: searchError
-            }, void 0, false, {
-                fileName: "[project]/app/page.tsx",
-                lineNumber: 68,
-                columnNumber: 17
-            }, this),
-            isSearching && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "mt-4 text-gray-600 dark:text-gray-400",
-                children: "Loading emails..."
-            }, void 0, false, {
-                fileName: "[project]/app/page.tsx",
-                lineNumber: 74,
-                columnNumber: 17
-            }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("ul", {
-                className: "mt-6 w-full max-w-md space-y-2",
-                children: emails.map((email)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("li", {
-                        onClick: ()=>!isSummarizing && handleSummarize(email.id),
-                        className: `cursor-pointer p-4 bg-gray-100 dark:bg-gray-800 rounded-md shadow-sm ${isSummarizing && selectedEmail === email.id ? 'opacity-50' : ''}`,
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "w-full max-w-md space-y-4",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex space-x-2",
                         children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
-                                children: email.subject
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                type: "text",
+                                placeholder: "Search emails by sender or subject...",
+                                value: query,
+                                onChange: (e)=>setQuery(e.target.value),
+                                maxLength: 100,
+                                className: "flex-1 border p-2 rounded"
                             }, void 0, false, {
                                 fileName: "[project]/app/page.tsx",
-                                lineNumber: 88,
+                                lineNumber: 151,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                onClick: handleSearch,
+                                disabled: isSearching || !query.trim(),
+                                className: `bg-blue-500 text-white px-4 py-2 rounded-md ${isSearching || !query.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`,
+                                children: isSearching ? 'Searching...' : 'Search'
+                            }, void 0, false, {
+                                fileName: "[project]/app/page.tsx",
+                                lineNumber: 159,
+                                columnNumber: 21
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/app/page.tsx",
+                        lineNumber: 150,
+                        columnNumber: 17
+                    }, this),
+                    searchError && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "text-red-600 bg-red-100 p-3 rounded-md",
+                        children: searchError
+                    }, void 0, false, {
+                        fileName: "[project]/app/page.tsx",
+                        lineNumber: 171,
+                        columnNumber: 21
+                    }, this),
+                    emails.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("ul", {
+                        className: "space-y-2",
+                        children: emails.map((email)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("li", {
+                                onClick: ()=>!isSummarizing && handleSummarize(email.id),
+                                className: `cursor-pointer p-4 bg-white dark:bg-gray-800 rounded-md shadow-sm hover:shadow-md transition-shadow ${isSummarizing && selectedEmail === email.id ? 'opacity-50' : ''}`,
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                        className: "block text-gray-900 dark:text-white",
+                                        children: email.subject
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/page.tsx",
+                                        lineNumber: 186,
+                                        columnNumber: 33
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "text-sm text-gray-600 dark:text-gray-400",
+                                        children: email.sender
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/page.tsx",
+                                        lineNumber: 187,
+                                        columnNumber: 33
+                                    }, this),
+                                    isSummarizing && selectedEmail === email.id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-sm text-blue-500 mt-2",
+                                        children: "Generating summary..."
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/page.tsx",
+                                        lineNumber: 190,
+                                        columnNumber: 37
+                                    }, this),
+                                    summaryError && selectedEmail === email.id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-sm text-red-600 mt-2",
+                                        children: summaryError
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/page.tsx",
+                                        lineNumber: 193,
+                                        columnNumber: 37
+                                    }, this)
+                                ]
+                            }, email.id, true, {
+                                fileName: "[project]/app/page.tsx",
+                                lineNumber: 179,
+                                columnNumber: 29
+                            }, this))
+                    }, void 0, false, {
+                        fileName: "[project]/app/page.tsx",
+                        lineNumber: 177,
+                        columnNumber: 21
+                    }, this),
+                    summary && selectedEmail && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                className: "text-lg font-semibold mb-4 text-gray-900 dark:text-white",
+                                children: "Summary"
+                            }, void 0, false, {
+                                fileName: "[project]/app/page.tsx",
+                                lineNumber: 202,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                className: "text-sm text-gray-600 dark:text-gray-400",
-                                children: email.sender
+                                className: "text-gray-700 dark:text-gray-300",
+                                children: summary
                             }, void 0, false, {
                                 fileName: "[project]/app/page.tsx",
-                                lineNumber: 89,
+                                lineNumber: 203,
                                 columnNumber: 25
-                            }, this),
-                            isSummarizing && selectedEmail === email.id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                className: "text-sm text-blue-500 mt-2",
-                                children: "Generating summary..."
-                            }, void 0, false, {
-                                fileName: "[project]/app/page.tsx",
-                                lineNumber: 91,
-                                columnNumber: 29
-                            }, this),
-                            summaryError && selectedEmail === email.id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                className: "text-sm text-red-600 mt-2",
-                                children: summaryError
-                            }, void 0, false, {
-                                fileName: "[project]/app/page.tsx",
-                                lineNumber: 94,
-                                columnNumber: 29
                             }, this)
                         ]
-                    }, email.id, true, {
+                    }, void 0, true, {
                         fileName: "[project]/app/page.tsx",
-                        lineNumber: 81,
-                        columnNumber: 21
-                    }, this))
-            }, void 0, false, {
-                fileName: "[project]/app/page.tsx",
-                lineNumber: 79,
-                columnNumber: 13
-            }, this),
-            summary && selectedEmail && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md",
-                children: [
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                        className: "text-lg font-semibold mb-4",
-                        children: "Summary"
-                    }, void 0, false, {
-                        fileName: "[project]/app/page.tsx",
-                        lineNumber: 102,
-                        columnNumber: 21
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                        children: summary
-                    }, void 0, false, {
-                        fileName: "[project]/app/page.tsx",
-                        lineNumber: 103,
+                        lineNumber: 201,
                         columnNumber: 21
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/page.tsx",
-                lineNumber: 101,
-                columnNumber: 17
+                lineNumber: 149,
+                columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/page.tsx",
-        lineNumber: 45,
+        lineNumber: 137,
         columnNumber: 9
     }, this);
 }
-_s(HomePage, "/UOm8OYU2VcqR3BMgIEFpgc72RA=");
+_s(HomePage, "9KPEo4PUlptCTnudSJcnh+wDaiQ=");
 _c = HomePage;
 var _c;
 __turbopack_refresh__.register(_c, "HomePage");

@@ -12,11 +12,14 @@ h11==0.14.0
 httplib2==0.22.0
 idna==3.10
 oauthlib==3.2.2
+openai==0.28
+psycopg2-binary==2.9.9
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
 pydantic==2.10.6
 pydantic_core==2.27.2
 pyparsing==3.2.1
+python-dotenv
 requests==2.32.3
 requests-oauthlib==2.0.0
 rsa==4.9
@@ -25,3 +28,7 @@ starlette==0.45.3
 typing_extensions==4.12.2
 urllib3==2.3.0
 uvicorn==0.34.0
+gunicorn
+httpx
+setuptools
+pydantic[email]
