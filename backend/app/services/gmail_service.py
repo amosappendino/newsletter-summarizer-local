@@ -61,35 +61,68 @@ def authenticate_gmail():
     service = build('gmail', 'v1', credentials=creds)
     return service
 
+import base64
+import requests
+import re
+from bs4 import BeautifulSoup
+
 def fetch_emails():
-    """Fetches emails from the 'Da guardare' label."""
+    """Fetches emails from the 'Da guardare' label and extracts plain text content."""
     service = authenticate_gmail()
+    label_id = list_labels()
 
-    # Hardcoded label ID for 'Da guardare'
-    label_id = 'Label_1410634696735130817'
-
-    try:
-        # Call the Gmail API to fetch emails from 'Da guardare' folder using the label ID
+    if label_id:
         results = service.users().messages().list(userId='me', labelIds=[label_id]).execute()
         messages = results.get('messages', [])
 
         if not messages:
             print('No messages found in "Da guardare" folder.')
         else:
-            print(f"Found {len(messages)} messages in 'Da guardare' folder:\n")
             for message in messages:
                 msg = service.users().messages().get(userId='me', id=message['id']).execute()
                 payload = msg.get('payload', {})
                 headers = payload.get('headers', [])
 
-                email_from = next((header['value'] for header in headers if header['name'] == 'From'), 'Unknown sender')
-                subject = next((header['value'] for header in headers if header['name'] == 'Subject'), 'No subject')
+                email_from = email_subject = email_body = ""
+                received_date = msg.get('internalDate', '')
 
-                snippet = msg.get('snippet', 'No snippet available')
-                
+                # Extract sender and subject from headers
+                for header in headers:
+                    if header['name'] == 'From':
+                        email_from = header['value']
+                    elif header['name'] == 'Subject':
+                        email_subject = header['value']
+
+                # Extract plain text content
+                email_body = extract_plain_text(payload)
+
+               # Store or print the extracted information in a concise way
+                print("=" * 50)
                 print(f"From: {email_from}")
-                print(f"Subject: {subject}")
-                print(f"Snippet: {snippet}")
-                print("="*50)
-    except Exception as e:
-        print(f"An error occurred while fetching emails: {e}")
+                print(f"Subject: {email_subject}")
+                print(f"Body length: {len(email_body)} characters")  # Show body length instead of full text
+                print("=" * 50)
+
+
+
+def extract_plain_text(payload):
+    """ Extracts the plain text content from an email's payload. """
+    email_text = ""
+
+    if 'parts' in payload:
+        # Recursively process multi-part emails
+        for part in payload['parts']:
+            email_text += extract_plain_text(part)
+    else:
+        mime_type = payload.get('mimeType')
+        body_data = payload.get('body', {}).get('data', '')
+
+        if body_data:
+            decoded_body = base64.urlsafe_b64decode(body_data).decode('utf-8', errors='ignore')
+            if mime_type == 'text/plain':
+                email_text += decoded_body + "\n"
+            elif mime_type == 'text/html':
+                soup = BeautifulSoup(decoded_body, 'html.parser')
+                email_text += soup.get_text() + "\n"  # Extract plain text from HTML
+
+    return email_text.strip()
