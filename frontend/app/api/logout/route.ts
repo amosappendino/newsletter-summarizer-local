@@ -1,19 +1,17 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function POST() {
     try {
-        const response = await fetch('http://localhost:8000/logout', {
-            method: 'GET',
-            credentials: 'include'
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/logout`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
-
-        if (!response.ok) {
-            throw new Error('Logout failed');
-        }
 
         return NextResponse.json({ message: 'Logged out successfully' });
     } catch (error) {
-        console.error('Error during logout:', error);
         return NextResponse.json({ error: 'Failed to logout' }, { status: 500 });
     }
 }

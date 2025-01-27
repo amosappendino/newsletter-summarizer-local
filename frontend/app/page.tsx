@@ -1,31 +1,18 @@
 "use client";
-import { useState, useEffect } from "react";
-import { searchEmails, summarizeEmail } from "./services/api";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-// Define types for email data
-interface Email {
-    id: number;
-    sender: string;
-    subject: string;
-}
+export default function Home() {
+    const router = useRouter();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [error, setError] = useState('');
 
-export default function HomePage() {
-    const [query, setQuery] = useState<string>("");
-    const [emails, setEmails] = useState<Email[]>([]);
-    const [selectedEmail, setSelectedEmail] = useState<number | null>(null);
-    const [summary, setSummary] = useState<string>("");
-    const [isSearching, setIsSearching] = useState<boolean>(false);
-    const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
-    const [searchError, setSearchError] = useState<string | null>(null);
-    const [summaryError, setSummaryError] = useState<string | null>(null);
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-
-    // Add authentication check
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/check-auth', {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/check-auth`, {
                     credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
@@ -34,178 +21,95 @@ export default function HomePage() {
                 const data = await response.json();
                 
                 if (data.status === 'unauthenticated') {
-                    window.location.href = '/login';
+                    router.push('/login');
                 } else {
                     setIsAuthenticated(true);
                 }
             } catch (error) {
                 console.error('Error checking auth status:', error);
-                window.location.href = '/login';
+                router.push('/login');
             }
         };
 
         checkAuth();
-    }, []);
+    }, [router]);
 
-    const handleSearch = async () => {
-        if (!query.trim()) return;
-        
-        setIsSearching(true);
-        setSearchError(null);
-        setEmails([]); // Clear previous results
-
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
         try {
-            const response = await searchEmails(query);
-            if (response && Array.isArray(response)) {
-                setEmails(response);
-                if (response.length === 0) {
-                    setSearchError("No emails found matching your search.");
-                }
-            } else {
-                console.error("Invalid response format:", response);
-                setSearchError("Error fetching emails. Please try again.");
-            }
-        } catch (error) {
-            console.error("Error searching emails:", error);
-            setSearchError("Failed to search emails. Please try again.");
-        } finally {
-            setIsSearching(false);
-        }
-    };
-
-    const handleSummarize = async (emailId: number) => {
-        if (isSummarizing) return;
-        
-        setSelectedEmail(emailId);
-        setSummaryError(null);
-        setIsSummarizing(true);
-
-        try {
-            const summary = await summarizeEmail(emailId);
-            if (summary) {
-                setSummary(summary);
-            } else {
-                setSummaryError("Failed to generate summary.");
-            }
-        } catch (error) {
-            console.error("Error summarizing email:", error);
-            setSummaryError("Failed to generate summary. Please try again.");
-        } finally {
-            setIsSummarizing(false);
-        }
-    };
-
-    const handleLogout = async () => {
-        try {
-            const response = await fetch('http://127.0.0.1:8000/logout', {
-                method: 'POST',
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/search-emails/?query=${encodeURIComponent(searchQuery)}`, {
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
-            
-            if (response.ok) {
-                setIsAuthenticated(false);
-                window.location.href = '/login';
-            } else {
-                console.error('Logout failed:', await response.text());
-            }
+            const data = await response.json();
+            setSearchResults(data);
         } catch (error) {
-            console.error('Error during logout:', error);
+            setError('Failed to search emails');
+            console.error('Search error:', error);
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center text-gray-600">
-                    Loading...
-                </div>
-            </div>
-        );
-    }
-
-    if (!isAuthenticated) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center text-gray-600">
-                    Redirecting to login...
-                </div>
-            </div>
-        );
-    }
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            router.push('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-8">
-            <button
-                onClick={handleLogout}
-                className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-            >
-                Logout
-            </button>
-
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-                Newsletter Summarizer
-            </h1>
-
-            <div className="w-full max-w-md space-y-4">
-                <div className="flex space-x-2">
-                    <input
-                        type="text"
-                        placeholder="Search emails by sender or subject..."
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        maxLength={100}
-                        className="flex-1 border p-2 rounded"
-                    />
+        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto">
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900">Newsletter Search</h1>
                     <button
-                        onClick={handleSearch}
-                        disabled={isSearching || !query.trim()}
-                        className={`bg-blue-500 text-white px-4 py-2 rounded-md ${
-                            isSearching || !query.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
-                        }`}
+                        onClick={handleLogout}
+                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
                     >
-                        {isSearching ? 'Searching...' : 'Search'}
+                        Logout
                     </button>
                 </div>
 
-                {searchError && (
-                    <div className="text-red-600 bg-red-100 p-3 rounded-md">
-                        {searchError}
+                <form onSubmit={handleSearch} className="mb-8">
+                    <div className="flex gap-4">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search your newsletters..."
+                            className="flex-1 p-2 border border-gray-300 rounded"
+                        />
+                        <button
+                            type="submit"
+                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                        >
+                            Search
+                        </button>
+                    </div>
+                </form>
+
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        {error}
                     </div>
                 )}
 
-                {emails.length > 0 && (
-                    <ul className="space-y-2">
-                        {emails.map((email) => (
-                            <li
-                                key={email.id}
-                                onClick={() => !isSummarizing && handleSummarize(email.id)}
-                                className={`cursor-pointer p-4 bg-white dark:bg-gray-800 rounded-md shadow-sm hover:shadow-md transition-shadow ${
-                                    isSummarizing && selectedEmail === email.id ? 'opacity-50' : ''
-                                }`}
-                            >
-                                <strong className="block text-gray-900 dark:text-white">{email.subject}</strong>
-                                <span className="text-sm text-gray-600 dark:text-gray-400">{email.sender}</span>
-                                
-                                {isSummarizing && selectedEmail === email.id && (
-                                    <p className="text-sm text-blue-500 mt-2">Generating summary...</p>
-                                )}
-                                {summaryError && selectedEmail === email.id && (
-                                    <p className="text-sm text-red-600 mt-2">{summaryError}</p>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-
-                {summary && selectedEmail && (
-                    <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-                        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Summary</h2>
-                        <p className="text-gray-700 dark:text-gray-300">{summary}</p>
-                    </div>
-                )}
+                <div className="space-y-4">
+                    {searchResults.map((result: any, index: number) => (
+                        <div key={index} className="bg-white p-4 rounded shadow">
+                            <h2 className="text-xl font-semibold">{result.subject}</h2>
+                            <p className="text-gray-600">{result.snippet}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );
