@@ -30,15 +30,12 @@ app = FastAPI(title="Newsletter Summarizer API")
 # Configure CORS
 origins = [
     "http://localhost:3000",
-    "https://newsletter-summarizer-omega.vercel.app",
-    # Allow all Vercel preview URLs
-    "https://*.vercel.app"
+    "https://newsletter-summarizer-omega.vercel.app"  # Only production URL
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app$",  # This allows all Vercel preview URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

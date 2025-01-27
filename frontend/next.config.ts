@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
 
-const PRODUCTION_DOMAIN = 'newsletter-summarizer-omega.vercel.app';
+const PRODUCTION_URL = 'newsletter-summarizer-omega.vercel.app';
 
 const nextConfig: NextConfig = {
     env: {
         NEXT_PUBLIC_BACKEND_URL: 'https://newsletter-summarizer-1081940379388.us-central1.run.app',
-        NEXT_PUBLIC_FRONTEND_URL: `https://${PRODUCTION_DOMAIN}`
+        NEXT_PUBLIC_FRONTEND_URL: `https://${PRODUCTION_URL}`
     },
     async redirects() {
         return [
@@ -14,10 +14,10 @@ const nextConfig: NextConfig = {
                 has: [
                     {
                         type: 'host',
-                        value: `(?!${PRODUCTION_DOMAIN}).*`,
+                        value: `(?!${PRODUCTION_URL}).*`,
                     },
                 ],
-                destination: `https://${PRODUCTION_DOMAIN}/:path*`,
+                destination: `https://${PRODUCTION_URL}/:path*`,
                 permanent: true,
             },
         ];
