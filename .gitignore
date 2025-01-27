@@ -1,8 +1,8 @@
-
 # Security & Credentials
-**/token.json
-**/credentials.json
-**/*.key
+token.json
+credentials.json
+*.key
+.env
 .env*
 
 # Python
