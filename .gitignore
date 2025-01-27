@@ -1,33 +1,20 @@
-# Ignore virtual environments
+
+# Security & Credentials
+**/token.json
+**/credentials.json
+**/*.key
+.env*
+
+# Python
 .venv/
 venv/
-
-# Ignore Python cache files
 __pycache__/
 *.pyc
-*.pyo
 
-# Ignore environment variable files
-.env
-.env.local
-.env.development
-.env.production
-
-# Ignore log files
-*.log
-
-# Ignore database files
-*.sqlite3
-*.db
-
-# Ignore IDE and editor settings
-.vscode/
-.idea/
-
-# Ignore node modules (frontend)
+# Node
 node_modules/
-.DS_Store
 .next/
-*.pyc
-token.json
-credentials.json
+
+# OS
+.DS_Store
+
