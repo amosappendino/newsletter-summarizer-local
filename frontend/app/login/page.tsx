@@ -36,7 +36,7 @@ export default function LoginPage() {
     }, [router]);
 
     const handleLogin = () => {
-        // This should redirect to the backend's Gmail auth endpoint
+        // Direct redirect to the backend's auth endpoint
         window.location.href = `${BACKEND_URL}/auth/gmail`;
     };
 

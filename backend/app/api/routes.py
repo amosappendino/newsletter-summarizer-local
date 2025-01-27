@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Request
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -13,6 +13,8 @@ from app.services.gmail_service import (
 )
 import base64
 from app.services.openai_service import get_summary
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 
 # Load environment variables
 load_dotenv()
@@ -221,23 +223,30 @@ async def logout():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def get_oauth_flow():
+    client_secrets_file = "credentials.json"
+    scopes = [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/userinfo.email'
+    ]
+    
+    flow = Flow.from_client_secrets_file(
+        client_secrets_file,
+        scopes=scopes,
+        redirect_uri="https://newsletter-summarizer-1081940379388.us-central1.run.app/auth/gmail/callback"
+    )
+    return flow
+
 @router.get("/auth/gmail")
 async def gmail_auth():
-    """Initiate Gmail authentication flow."""
-    try:
-        from app.services.gmail_service import authenticate_gmail
-        result = authenticate_gmail()
-        
-        if isinstance(result, dict) and "auth_url" in result:
-            # Redirect to Google's OAuth consent screen
-            return RedirectResponse(url=result["auth_url"])
-        
-        # If we have a service object, redirect to frontend
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-        return RedirectResponse(url=frontend_url)
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    flow = get_oauth_flow()
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt='consent'
+    )
+    
+    return RedirectResponse(url=authorization_url)
 
 @router.get("/check-auth")
 async def check_auth():
