@@ -2,20 +2,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Verify this URL matches your Cloud Run service
-const BACKEND_URL = 'https://newsletter-summarizer-1081940379388.us-central1.run.app';
-
 export default function LoginPage() {
     const router = useRouter();
     const [authStatus, setAuthStatus] = useState<string>('checking');
     const [error, setError] = useState<string>('');
 
-    console.log("Using backend URL:", BACKEND_URL);
+    const BACKEND_URL = 'https://newsletter-summarizer-1081940379388.us-central1.run.app';
 
     const checkAuthStatus = useCallback(async () => {
         try {
-            console.log("Checking auth at:", `${BACKEND_URL}/check-auth`);
-            
             const response = await fetch(`${BACKEND_URL}/check-auth`, {
                 credentials: 'include',
                 headers: {
@@ -40,20 +35,12 @@ export default function LoginPage() {
         checkAuthStatus();
     }, [checkAuthStatus]);
 
-    const handleLogin = (e: React.MouseEvent) => {
-        e.preventDefault(); // Prevent any default behavior
-        console.log("Redirecting to:", `${BACKEND_URL}/auth/gmail`);
+    const handleLogin = () => {
         window.location.href = `${BACKEND_URL}/auth/gmail`;
     };
 
     if (authStatus === 'checking') {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    Checking authentication status...
-                </div>
-            </div>
-        );
+        return <div>Checking authentication status...</div>;
     }
 
     return (
