@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -9,33 +9,34 @@ export default function LoginPage() {
 
     const BACKEND_URL = 'https://newsletter-summarizer-1081940379388.us-central1.run.app';
 
-    const checkAuthStatus = useCallback(async () => {
-        try {
-            const response = await fetch(`${BACKEND_URL}/check-auth`, {
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const data = await response.json();
-            
-            if (data.status === 'authenticated') {
-                router.push('/');
-            } else {
-                setAuthStatus('unauthenticated');
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const response = await fetch(`${BACKEND_URL}/check-auth`, {
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const data = await response.json();
+                
+                if (data.status === 'authenticated') {
+                    router.push('/');
+                } else {
+                    setAuthStatus('unauthenticated');
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                setError('Failed to check authentication status');
+                setAuthStatus('error');
             }
-        } catch (error) {
-            console.error('Error checking auth status:', error);
-            setError('Failed to check authentication status');
-            setAuthStatus('error');
-        }
+        };
+
+        checkAuth();
     }, [router]);
 
-    useEffect(() => {
-        checkAuthStatus();
-    }, [checkAuthStatus]);
-
     const handleLogin = () => {
+        // This should redirect to the backend's Gmail auth endpoint
         window.location.href = `${BACKEND_URL}/auth/gmail`;
     };
 
