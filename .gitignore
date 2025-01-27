@@ -27,3 +27,7 @@ __pycache__/
 # Ignore node modules (frontend)
 node_modules/
 .DS_Store
+.next/
+*.pyc
+token.json
+credentials.json

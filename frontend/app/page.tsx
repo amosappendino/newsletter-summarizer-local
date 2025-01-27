@@ -7,6 +7,9 @@ interface Email {
     id: number;
     sender: string;
     subject: string;
+    preview?: string;
+    received_at?: string;
+    match_type?: string;
 }
 
 export default function HomePage() {
@@ -53,7 +56,7 @@ export default function HomePage() {
 
         try {
             const response = await searchEmails(query);
-            if (response && Array.isArray(response)) {
+            if (Array.isArray(response)) {
                 setEmails(response);
                 if (response.length === 0) {
                     setSearchError("No emails found matching your search.");

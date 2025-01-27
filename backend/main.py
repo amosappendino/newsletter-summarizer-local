@@ -20,8 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include the API routes
-app.include_router(router, prefix="/api")
+# Include the API routes without prefix
+app.include_router(router)  # Removed the prefix="/api"
 
 @app.get("/")
 def read_root():

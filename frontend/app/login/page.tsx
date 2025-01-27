@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { signInWithGoogle } from '../services/api';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -30,10 +31,22 @@ export default function LoginPage() {
 
     const handleLogin = async () => {
         try {
-            window.location.href = 'http://localhost:8000/auth/gmail';
+            // Open the auth URL directly instead of waiting for a redirect
+            window.open('http://localhost:8000/auth/gmail', '_self');
         } catch (error) {
             console.error('Error during login:', error);
             setError('Failed to initiate login');
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await fetch('http://localhost:8000/logout');
+            // Force reload the page to clear any client-side state
+            window.location.href = '/login';
+        } catch (error) {
+            console.error('Error during logout:', error);
+            setError('Failed to logout');
         }
     };
 
