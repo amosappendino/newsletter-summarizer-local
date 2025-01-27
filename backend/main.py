@@ -5,13 +5,14 @@ import os
 import uvicorn
 import requests
 from dotenv import load_dotenv
+from app.api.routes import router
 
 # Load environment variables
 load_dotenv()
 
 # Set Google Cloud credentials
-credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-if not credentials_path or not os.path.exists(credentials_path):
+credentials_path = "google_secrets.json"
+if not os.path.exists(credentials_path):
     raise ValueError(f"Google Cloud credentials file not found: {credentials_path}")
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
@@ -29,8 +30,7 @@ app = FastAPI(title="Newsletter Summarizer API")
 # Configure CORS
 origins = [
     "http://localhost:3000",
-    "https://newsletter-summarizer-771yxzwwr-amos-projects-391e26d8.vercel.app",
-    "https://newsletter-summarizer-1081940379388.us-central1.run.app"  # Your Cloud Run URL
+    "https://newsletter-summarizer-omega.vercel.app"  # Your production URL
 ]
 
 app.add_middleware(
@@ -40,6 +40,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include the router
+app.include_router(router)
 
 @app.get("/")
 def read_root():
@@ -72,5 +75,4 @@ async def upload_image(image_url: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "8080"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0")

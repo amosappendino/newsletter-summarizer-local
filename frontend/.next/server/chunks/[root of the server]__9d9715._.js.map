@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 55, "column": 0}, "map": {"version":3,"sources":["file:///Users/amos/Random%20Projects/6.S093%20-%20How%20to%20ship%20almost%20anything%20with%20AI/Final%20Project%20IAP%20Sundai%20/frontend/app/api/logout/route.ts"],"sourcesContent":["import { NextResponse } from 'next/server';\n\nexport async function GET() {\n    try {\n        const response = await fetch('http://localhost:8000/logout', {\n            method: 'GET',\n            credentials: 'include'\n        });\n\n        if (!response.ok) {\n            throw new Error('Logout failed');\n        }\n\n        return NextResponse.json({ message: 'Logged out successfully' });\n    } catch (error) {\n        console.error('Error during logout:', error);\n        return NextResponse.json({ error: 'Failed to logout' }, { status: 500 });\n    }\n}\n\n"],"names":[],"mappings":";;;AAAA;;AAEO,eAAe;IAClB,IAAI;QACA,MAAM,WAAW,MAAM,MAAM,gCAAgC;YACzD,QAAQ;YACR,aAAa;QACjB;QAEA,IAAI,CAAC,SAAS,EAAE,EAAE;YACd,MAAM,IAAI,MAAM;QACpB;QAEA,OAAO,gIAAA,CAAA,eAAY,CAAC,IAAI,CAAC;YAAE,SAAS;QAA0B;IAClE,EAAE,OAAO,OAAO;QACZ,QAAQ,KAAK,CAAC,wBAAwB;QACtC,OAAO,gIAAA,CAAA,eAAY,CAAC,IAAI,CAAC;YAAE,OAAO;QAAmB,GAAG;YAAE,QAAQ;QAAI;IAC1E;AACJ"}},
-    {"offset": {"line": 81, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"A"}}]
-}

@@ -18,3 +18,20 @@ export async function GET() {
     }
 }
 
+const checkAuth = async () => {
+    try {
+        const response = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/status`,
+            {
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+        // Handle response
+    } catch (error) {
+        console.error('Failed to check authentication status:', error);
+    }
+};
+

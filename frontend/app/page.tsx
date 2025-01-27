@@ -25,7 +25,12 @@ export default function HomePage() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const response = await fetch('http://localhost:8000/check-auth');
+                const response = await fetch('http://127.0.0.1:8000/check-auth', {
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
                 const data = await response.json();
                 
                 if (data.status === 'unauthenticated') {
@@ -36,8 +41,6 @@ export default function HomePage() {
             } catch (error) {
                 console.error('Error checking auth status:', error);
                 window.location.href = '/login';
-            } finally {
-                setIsLoading(false);
             }
         };
 
@@ -94,22 +97,22 @@ export default function HomePage() {
 
     const handleLogout = async () => {
         try {
-            const response = await fetch('http://localhost:8000/logout');
-            const data = await response.json();
+            const response = await fetch('http://127.0.0.1:8000/logout', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
             
             if (response.ok) {
-                // Clear local state
-                setEmails([]);
-                setSummary("");
-                setQuery("");
                 setIsAuthenticated(false);
-                // Redirect to login page
                 window.location.href = '/login';
             } else {
-                console.error('Logout failed:', data);
+                console.error('Logout failed:', await response.text());
             }
         } catch (error) {
-            console.error('Error logging out:', error);
+            console.error('Error during logout:', error);
         }
     };
 

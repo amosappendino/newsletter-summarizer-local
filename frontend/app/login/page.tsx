@@ -2,14 +2,26 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
+// Verify this URL matches your Cloud Run service
+const BACKEND_URL = 'https://newsletter-summarizer-1081940379388.us-central1.run.app';
+
 export default function LoginPage() {
     const router = useRouter();
     const [authStatus, setAuthStatus] = useState<string>('checking');
     const [error, setError] = useState<string>('');
 
+    console.log("Using backend URL:", BACKEND_URL);
+
     const checkAuthStatus = useCallback(async () => {
         try {
-            const response = await fetch('http://localhost:8000/check-auth');
+            console.log("Checking auth at:", `${BACKEND_URL}/check-auth`);
+            
+            const response = await fetch(`${BACKEND_URL}/check-auth`, {
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
             const data = await response.json();
             
             if (data.status === 'authenticated') {
@@ -28,13 +40,10 @@ export default function LoginPage() {
         checkAuthStatus();
     }, [checkAuthStatus]);
 
-    const handleLogin = async () => {
-        try {
-            window.location.href = 'http://localhost:8000/auth/gmail';
-        } catch (error) {
-            console.error('Error during login:', error);
-            setError('Failed to initiate login');
-        }
+    const handleLogin = (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent any default behavior
+        console.log("Redirecting to:", `${BACKEND_URL}/auth/gmail`);
+        window.location.href = `${BACKEND_URL}/auth/gmail`;
     };
 
     if (authStatus === 'checking') {
@@ -48,14 +57,14 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
-                <div className="text-center">
-                    <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                        Newsletter Summarizer
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md w-full space-y-8">
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Sign in to your account
                     </h2>
-                    <p className="mt-2 text-sm text-gray-600">
-                        Sign in with your Gmail account to continue
+                    <p className="mt-2 text-center text-sm text-gray-600">
+                        Use your Gmail account to access the newsletter summarizer
                     </p>
                 </div>
 

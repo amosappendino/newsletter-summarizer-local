@@ -16,38 +16,50 @@ var _s = __turbopack_refresh__.signature();
 "use client";
 ;
 ;
+// Hardcode the backend URL for testing
+const BACKEND_URL = 'http://127.0.0.1:8000';
 function LoginPage() {
     _s();
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
     const [authStatus, setAuthStatus] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('checking');
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
+    console.log("Using backend URL:", BACKEND_URL);
+    const checkAuthStatus = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "LoginPage.useCallback[checkAuthStatus]": async ()=>{
+            try {
+                console.log("Checking auth at:", `${BACKEND_URL}/check-auth`);
+                const response = await fetch(`${BACKEND_URL}/check-auth`, {
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.status === 'authenticated') {
+                    router.push('/');
+                } else {
+                    setAuthStatus('unauthenticated');
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                setError('Failed to check authentication status');
+                setAuthStatus('error');
+            }
+        }
+    }["LoginPage.useCallback[checkAuthStatus]"], [
+        router
+    ]);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "LoginPage.useEffect": ()=>{
             checkAuthStatus();
         }
-    }["LoginPage.useEffect"], []);
-    const checkAuthStatus = async ()=>{
-        try {
-            const response = await fetch('http://localhost:8000/check-auth');
-            const data = await response.json();
-            if (data.status === 'authenticated') {
-                router.push('/');
-            } else {
-                setAuthStatus('unauthenticated');
-            }
-        } catch (error) {
-            console.error('Error checking auth status:', error);
-            setError('Failed to check authentication status');
-            setAuthStatus('error');
-        }
-    };
-    const handleLogin = async ()=>{
-        try {
-            window.location.href = 'http://localhost:8000/auth/gmail';
-        } catch (error) {
-            console.error('Error during login:', error);
-            setError('Failed to initiate login');
-        }
+    }["LoginPage.useEffect"], [
+        checkAuthStatus
+    ]);
+    const handleLogin = (e)=>{
+        e.preventDefault(); // Prevent any default behavior
+        console.log("Redirecting to:", `${BACKEND_URL}/auth/gmail`);
+        window.location.href = `${BACKEND_URL}/auth/gmail`;
     };
     if (authStatus === 'checking') {
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -57,43 +69,42 @@ function LoginPage() {
                 children: "Checking authentication status..."
             }, void 0, false, {
                 fileName: "[project]/app/login/page.tsx",
-                lineNumber: 43,
+                lineNumber: 52,
                 columnNumber: 17
             }, this)
         }, void 0, false, {
             fileName: "[project]/app/login/page.tsx",
-            lineNumber: 42,
+            lineNumber: 51,
             columnNumber: 13
         }, this);
     }
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "min-h-screen flex items-center justify-center bg-gray-50",
+        className: "min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8",
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-            className: "max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg",
+            className: "max-w-md w-full space-y-8",
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                    className: "text-center",
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                            className: "mt-6 text-3xl font-extrabold text-gray-900",
-                            children: "Newsletter Summarizer"
+                            className: "mt-6 text-center text-3xl font-extrabold text-gray-900",
+                            children: "Sign in to your account"
                         }, void 0, false, {
                             fileName: "[project]/app/login/page.tsx",
-                            lineNumber: 54,
+                            lineNumber: 63,
                             columnNumber: 21
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                            className: "mt-2 text-sm text-gray-600",
-                            children: "Sign in with your Gmail account to continue"
+                            className: "mt-2 text-center text-sm text-gray-600",
+                            children: "Use your Gmail account to access the newsletter summarizer"
                         }, void 0, false, {
                             fileName: "[project]/app/login/page.tsx",
-                            lineNumber: 57,
+                            lineNumber: 66,
                             columnNumber: 21
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/login/page.tsx",
-                    lineNumber: 53,
+                    lineNumber: 62,
                     columnNumber: 17
                 }, this),
                 error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -104,12 +115,12 @@ function LoginPage() {
                         children: error
                     }, void 0, false, {
                         fileName: "[project]/app/login/page.tsx",
-                        lineNumber: 64,
+                        lineNumber: 73,
                         columnNumber: 25
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/app/login/page.tsx",
-                    lineNumber: 63,
+                    lineNumber: 72,
                     columnNumber: 21
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -119,27 +130,27 @@ function LoginPage() {
                         children: "Sign in with Gmail"
                     }, void 0, false, {
                         fileName: "[project]/app/login/page.tsx",
-                        lineNumber: 69,
+                        lineNumber: 78,
                         columnNumber: 21
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/app/login/page.tsx",
-                    lineNumber: 68,
+                    lineNumber: 77,
                     columnNumber: 17
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/app/login/page.tsx",
-            lineNumber: 52,
+            lineNumber: 61,
             columnNumber: 13
         }, this)
     }, void 0, false, {
         fileName: "[project]/app/login/page.tsx",
-        lineNumber: 51,
+        lineNumber: 60,
         columnNumber: 9
     }, this);
 }
-_s(LoginPage, "IK7RElU5Pz0fJb5wOmnP4VhJCEg=", false, function() {
+_s(LoginPage, "gh57CNBYCu65kw7E6O7NXEmqG4M=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
     ];

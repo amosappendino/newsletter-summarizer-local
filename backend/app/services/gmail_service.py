@@ -50,11 +50,14 @@ def authenticate_gmail():
                 creds = None
         
         if not creds:
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-            creds = flow.run_local_server(port=8080)
-
-            with open(TOKEN_FILE, 'wb') as token:
-                pickle.dump(creds, token)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                CREDENTIALS_FILE, 
+                SCOPES,
+                redirect_uri=os.getenv('OAUTH_REDIRECT_URI', 'http://localhost:8080')
+            )
+            # Use the frontend URL for the OAuth flow
+            auth_url = flow.authorization_url()[0]
+            return {"auth_url": auth_url}
 
     return build('gmail', 'v1', credentials=creds)
 

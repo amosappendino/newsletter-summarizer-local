@@ -212,14 +212,12 @@ async def summarize_email(email_id: str):
         print(f"Error in summarize_email: {str(e)}")  # Debug log
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/logout")
-async def logout_route():
+@router.post("/logout")
+async def logout():
     try:
         from app.services.gmail_service import logout
         result = logout()
-        if not result:  # If somehow result is None
-            return {"message": "Logout completed but no status returned"}
-        return result
+        return {"message": "Successfully logged out"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -228,17 +226,16 @@ async def gmail_auth():
     """Initiate Gmail authentication flow."""
     try:
         from app.services.gmail_service import authenticate_gmail
-        service = authenticate_gmail()
-        if service:
-            # First check if setup is completed
-            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'folder_config.json')
-            if os.path.exists(config_path):
-                # If setup is done, redirect to main page
-                return RedirectResponse(url="http://localhost:3000")
-            else:
-                # If setup is not done, redirect to setup page
-                return RedirectResponse(url="http://localhost:3000/setup")
-        raise HTTPException(status_code=401, detail="Authentication failed")
+        result = authenticate_gmail()
+        
+        if isinstance(result, dict) and "auth_url" in result:
+            # Redirect to Google's OAuth consent screen
+            return RedirectResponse(url=result["auth_url"])
+        
+        # If we have a service object, redirect to frontend
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        return RedirectResponse(url=frontend_url)
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
