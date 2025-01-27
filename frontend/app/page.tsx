@@ -2,11 +2,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface SearchResult {
+    subject: string;
+    snippet: string;
+}
+
 export default function Home() {
     const router = useRouter();
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -22,8 +26,6 @@ export default function Home() {
                 
                 if (data.status === 'unauthenticated') {
                     router.push('/login');
-                } else {
-                    setIsAuthenticated(true);
                 }
             } catch (error) {
                 console.error('Error checking auth status:', error);
@@ -103,7 +105,7 @@ export default function Home() {
                 )}
 
                 <div className="space-y-4">
-                    {searchResults.map((result: any, index: number) => (
+                    {searchResults.map((result: SearchResult, index: number) => (
                         <div key={index} className="bg-white p-4 rounded shadow">
                             <h2 className="text-xl font-semibold">{result.subject}</h2>
                             <p className="text-gray-600">{result.snippet}</p>
